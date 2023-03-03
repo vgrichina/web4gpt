@@ -34,14 +34,20 @@ function sendMessage(text, sender) {
 
 // get AI response and add to chat list
 function getAiResponse(userInput) {
+  const previousMessages = chatList.querySelectorAll('.user-message, .ai-message');
+  const messages = Array.from(previousMessages).map(message => ({
+    role: message.classList.contains('user-message') ? 'user' : 'assistant',
+    content: message.querySelector('.message-text').textContent
+  }));
+
+  messages.push({
+    role: 'user',
+    content: userInput
+  });
+
   const requestBody = {
     model: 'gpt-3.5-turbo',
-    messages: [
-      {
-        role: 'user',
-        content: userInput
-      }
-    ]
+    messages
   };
 
   fetch(apiUrl, {
