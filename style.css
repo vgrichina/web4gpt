@@ -91,3 +91,7 @@
 .chat-input button[type="submit"]:hover {
   background-color: #1a5db1;
 }
+
+.chat-history ul {
+  list-style: none;
+}
