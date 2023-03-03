@@ -37,10 +37,26 @@ function sendMessage(text, sender) {
 // get AI response and add to chat list
 function getAiResponse(userInput) {
   const previousMessages = chatList.querySelectorAll('.user-message, .ai-message');
-  const messages = Array.from(previousMessages).map(message => ({
+  const messages = [{
+      role: 'system',
+      content: `
+        Hi! I'm a chatbot that is good at making simple websites for it's users.
+
+        I can take any input info from you, ask you questions about missing info and then create a website for you.
+
+        I'll start by listing website outline and which information is needed for each section. Then I'll ask you questions about the missing info.
+
+        After that I'll generate website with separate .html, .css and .js files for you.
+        I'll represent every file in output like this:
+
+        ---[file_name]---
+        [actual file content goes here]
+        ---[file name] end---
+      `
+  }].concat(Array.from(previousMessages).map(message => ({
     role: message.classList.contains('user-message') ? 'user' : 'assistant',
     content: message.querySelector('.message-text').textContent
-  }));
+  })));
 
   messages.push({
     role: 'user',
