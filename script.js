@@ -20,8 +20,9 @@ chatForm.addEventListener('submit', e => {
 function addMessageToList(text, sender) {
   const messageLi = document.createElement('li');
   messageLi.classList.add(sender === 'ai' ? 'ai-message' : 'user-message');
+  const parsedText = marked.marked(text);
   messageLi.innerHTML = `
-    <div class="message-text">${text}</div>
+    <div class="message-text">${parsedText}</div>
   `;
   chatList.appendChild(messageLi);
   chatList.scrollTop = chatList.scrollHeight;
@@ -31,6 +32,7 @@ function addMessageToList(text, sender) {
 function sendMessage(text, sender) {
   addMessageToList(text, sender);
 }
+
 
 // get AI response and add to chat list
 function getAiResponse(userInput) {
