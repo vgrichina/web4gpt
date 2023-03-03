@@ -38,17 +38,10 @@ function getAiResponse(userInput) {
     model: 'gpt-3.5-turbo',
     messages: [
       {
-        text: userInput,
-        sender: 'user'
-      },
-      {
-        text: '',
-        sender: 'ai'
+        role: 'user',
+        content: userInput
       }
-    ],
-    temperature: 0.5,
-    n: 1,
-    max_tokens: 100
+    ]
   };
 
   fetch(apiUrl, {
@@ -61,9 +54,8 @@ function getAiResponse(userInput) {
   })
   .then(response => response.json())
   .then(data => {
-    const aiResponse = data.choices[0].text.trim();
+    const aiResponse = data.choices[0].message.content.trim();
     sendMessage(aiResponse, 'ai');
   })
   .catch(error => console.error('Error:', error));
 }
-
