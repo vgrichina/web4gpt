@@ -16,6 +16,23 @@ chatForm.addEventListener('submit', e => {
   }
 });
 
+const files = [
+  {
+    name: 'index.html',
+    content: `
+      <html>
+        <head>
+          <title>Hello, world!</title>
+        </head>
+        <body>
+          <h1>Hello, world!</h1>
+        </body>
+      </html>
+    `
+  }
+];
+updateFileList();
+
 // add message to chat list
 function addMessageToList(text, sender) {
   const messageLi = document.createElement('li');
@@ -26,13 +43,48 @@ function addMessageToList(text, sender) {
   `;
   chatList.appendChild(messageLi);
   chatList.scrollTop = chatList.scrollHeight;
+
+  if (sender === 'ai') {
+    // Extract files from AI response
+    const files = text.matchAll(/---([\w.]+)---(.+?)---([\w.]+) end---/gs);
+    // ---file_name.ext--- - start of file
+    // (.+) - file content
+    // ---file_name.ext end--- - end of file
+
+    for (let file of files) {
+      console.log('file: ', file, Array.from(file));
+      const [, fileName, fileContent] = file;
+      console.log('file name: ', fileName, 'file content: ', fileContent);
+      updateFile(fileName, fileContent);
+    }
+
+    updateFileList();
+  }
+}
+
+function updateFile(name, content) {
+  const file = files.find(file => file.name === name);
+  if (file) {
+    file.content = content;
+  } else {
+    files.push({
+      name,
+      content
+    });
+  }
+}
+
+function updateFileList() {
+  const fileList = document.querySelector('.file-list');
+  fileList.innerHTML = files.map(file => `
+    <li>${file.name}</li>
+  `).join('\n'); // TODO: encode file name
 }
 
 // send user message to chat list
 function sendMessage(text, sender) {
   addMessageToList(text, sender);
 }
-
 
 // get AI response and add to chat list
 function getAiResponse(userInput) {
@@ -49,9 +101,9 @@ function getAiResponse(userInput) {
         After that I'll generate website with separate .html, .css and .js files for you.
         I'll represent every file in output like this:
 
-        ---[file_name]---
+        ---file_name.ext---
         [actual file content goes here]
-        ---[file name] end---
+        ---file_name.ext end---
       `
   }].concat(Array.from(previousMessages).map(message => ({
     role: message.classList.contains('user-message') ? 'user' : 'assistant',

@@ -6,22 +6,42 @@
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
-    <div class="chat-container">
-      <div class="chat-header">
-        <h2>Chat</h2>
+    <div class="container">
+      <div class="left-column">
+        <div class="chat-container">
+          <div class="chat-header">
+            <h2>Chat</h2>
+          </div>
+          <div class="chat-history">
+            <ul id="chat-list"></ul>
+          </div>
+          <div class="chat-input">
+            <form id="chat-form">
+              <input type="text" id="chat-message" placeholder="Type your message...">
+              <button type="submit">Send</button>
+            </form>
+          </div>
+        </div>
       </div>
-      <div class="chat-history">
-        <ul id="chat-list"></ul>
-      </div>
-      <div class="chat-input">
-        <form id="chat-form">
-          <input type="text" id="chat-message" placeholder="Type your message...">
-          <button type="submit">Send</button>
-        </form>
+      <div class="right-column">
+        <div class="file-list-container">
+          <h2>File List</h2>
+          <ul class="file-list">
+          </ul>
+        </div>
+        <div class="file-content-container">
+          <h2>File Content</h2>
+        </div>
+        <div class="file-summary-container">
+          <h2>File Summary</h2>
+        </div>
+        <div class="website-preview-container">
+          <h2>Website Preview</h2>
+          <iframe src="https://www.example.com"></iframe>
+        </div>
       </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="script.js"></script>
   </body>
 </html>
-
