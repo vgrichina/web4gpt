@@ -1,15 +1,19 @@
+body {
+  margin: 0;
+  padding: 0;
+}
+
 /* Container styles */
 .container {
   display: grid;
   grid-template-columns: 1fr 3fr;
-  gap: 20px;
   height: 100vh;
 }
 
 /* Left column styles */
 .left-column {
-  padding: 20px;
   justify-content: space-between;
+  height: 100vh;
 }
 
 /* Chat container styles */
@@ -18,8 +22,6 @@
   flex-direction: column;
   justify-content: space-between;
   background-color: #f2f2f2;
-  border-radius: 5px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
   height: 100%;
 }
 
@@ -40,7 +42,6 @@
 /* Chat history styles */
 .chat-history {
   overflow-y: auto;
-  padding: 20px;
   flex-grow: 1;
 }
 
@@ -116,9 +117,6 @@
   flex-direction: column;
   justify-content: space-between;
   height: 100%;
-  background-color: #f2f2f2;
-  border-radius: 5px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
 }
 
 .file-list {
@@ -128,7 +126,6 @@
 
 /* File List styles */
 .file-list {
-  background-color: #f2f2f2;
   border-radius: 5px;
   padding: 20px;
   flex-direction: column;
@@ -156,27 +153,7 @@ ul.file-list {
 }
 
 /* File Content styles */
-.file-content {
-  background-color: #f2f2f2;
-  border-radius: 5px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-  padding: 20px;
-}
-
-.file-content-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #002f6c;
-  color: #ffffff;
-  height: 50px;
-  border-top-left-radius: 5px;
-  border-top-right-radius: 5px;
-  font-size: 1.5rem;
-  font-weight: bold;
-}
-
-.file-content pre {
+.file-content.pre {
   white-space: pre-wrap;
   overflow-wrap: break-word;
 }
@@ -234,7 +211,7 @@ ul.file-list {
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
   gap: 10px;
-  padding: 20px;
+  height: 100vh;
 }
 
 /* Grid item styles */

@@ -74,10 +74,21 @@ function updateFile(name, content) {
   }
 }
 
+function clickFile(event) {
+  const fileName = event.target.textContent;
+  const file = files.find(file => file.name === fileName);
+  if (file) {
+    const fileContent = file.content;
+    // Set .file-content
+    const fileContentElement = document.querySelector('.file-content');
+    fileContentElement.textContent = fileContent;
+  }
+}
+
 function updateFileList() {
   const fileList = document.querySelector('.file-list');
   fileList.innerHTML = files.map(file => `
-    <li>${file.name}</li>
+    <li onclick="clickFile(event)">${file.name}</li>
   `).join('\n'); // TODO: encode file name
 }
 
