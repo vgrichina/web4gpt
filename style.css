@@ -154,35 +154,6 @@ ul.file-list {
   overflow: auto;
 }
 
-/* File Summary styles */
-.file-summary {
-  background-color: #f2f2f2;
-  border-radius: 5px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-}
-
-.file-summary-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #002f6c;
-  color: #ffffff;
-  height: 50px;
-  border-top-left-radius: 5px;
-  border-top-right-radius: 5px;
-  font-size: 1.5rem;
-  font-weight: bold;
-}
-
-.file-summary-content {
-  flex-grow: 1;
-  margin-top: 20px;
-  overflow-y: auto;
-}
-
 /* Website preview styles */
 .website-preview-container iframe {
   width: 100%;

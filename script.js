@@ -12,7 +12,12 @@ chatForm.addEventListener('submit', e => {
   if (userInput !== '') {
     sendMessage(userInput, 'user');
     chatInput.value = '';
-    getAiResponse(userInput);
+    getAiResponse(userInput)
+      .then(data => {
+        const aiResponse = data.choices[0].message.content.trim();
+        sendMessage(aiResponse, 'ai');
+      })
+      .catch(error => console.error('Error:', error));
   }
 });
 
@@ -83,6 +88,13 @@ function clickFile(event) {
     // Set .file-content
     const fileContentElement = document.querySelector('.file-content');
     fileContentElement.textContent = fileContent;
+
+    getAiResponse(`Please give short summary of the following file: ${fileName}\n\n${fileContent}`)
+      .then(data => {
+        const aiResponse = data.choices[0].message.content.trim();
+        document.querySelector('.file-summary').innerHTML = marked.marked(aiResponse);
+      })
+      .catch(error => console.error('Error:', error));
   }
 }
 
@@ -165,7 +177,7 @@ function getAiResponse(userInput) {
     messages
   };
 
-  fetch(apiUrl, {
+  return fetch(apiUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -174,9 +186,4 @@ function getAiResponse(userInput) {
     body: JSON.stringify(requestBody)
   })
   .then(response => response.json())
-  .then(data => {
-    const aiResponse = data.choices[0].message.content.trim();
-    sendMessage(aiResponse, 'ai');
-  })
-  .catch(error => console.error('Error:', error));
 }
