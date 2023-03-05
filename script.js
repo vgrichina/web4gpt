@@ -141,6 +141,8 @@ function getAiResponse(userInput) {
 
         I'll start by listing website outline and which information is needed for each section. Then I'll ask you questions about the missing info.
 
+        If you don't provide me with answer to a question I'll be creative with info I have from training data.
+
         After that I'll generate website with separate .html, .css and .js files for you.
         I'll represent every file in output like this:
 
