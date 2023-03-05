@@ -37,7 +37,7 @@ updateFileList();
 function addMessageToList(text, sender) {
   const messageLi = document.createElement('li');
   messageLi.classList.add(sender === 'ai' ? 'ai-message' : 'user-message');
-  const parsedText = marked.marked(text);
+  const parsedText = marked.marked(text.replaceAll(/---([\w.]+)---(.+?)---([\w.]+) end---/gs, (_, fileName) => '`' + fileName + '`'));
   messageLi.innerHTML = `
     <div class="message-text">${parsedText}</div>
   `;
