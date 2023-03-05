@@ -59,6 +59,7 @@ function addMessageToList(text, sender) {
     }
 
     updateFileList();
+    previewWebsite();
   }
 }
 
@@ -90,6 +91,37 @@ function updateFileList() {
   fileList.innerHTML = files.map(file => `
     <li onclick="clickFile(event)">${file.name}</li>
   `).join('\n'); // TODO: encode file name
+}
+
+function detectMimeType(fileName) {
+  const extension = fileName.split('.').pop();
+  if (extension === 'html') {
+    return 'text/html';
+  } else if (extension === 'css') {
+    return 'text/css';
+  } else if (extension === 'js') {
+    return 'text/javascript';
+  } else {
+    return 'text/plain';
+  }
+}
+
+function replaceUrls(content, links) {
+  for (let link of links) {
+    content = content.replaceAll(link.name, link.url);
+  }
+
+  return content;
+}
+
+function previewWebsite() {
+  for (let file of files) {
+    const url = URL.createObjectURL(new Blob([file.content], { type: detectMimeType(file.name) }));
+    file.url = url;
+  }
+
+  const index = files.find(file => file.name === 'index.html');
+  document.querySelector('.website-preview').srcdoc = replaceUrls(index.content, files);
 }
 
 // send user message to chat list
