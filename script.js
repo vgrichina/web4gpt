@@ -137,6 +137,8 @@ function clickFile(event) {
         document.querySelector('.file-summary').innerHTML = marked.marked(aiResponse);
       })
       .catch(error => console.error('Error:', error));
+    document.querySelector('.file-summary').innerHTML = 'Loading...';
+
   }
 }
 
