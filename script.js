@@ -82,10 +82,6 @@ function processAiResponse(text) {
 
 // add message to chat list
 function addMessageToList(text, sender) {
-  if (sender === 'assistant') {
-    text = text.replaceAll(/---([\w.]+)---(.+?)---([\w.]+) end---/gs, (_, fileName) => '`' + fileName + '`');
-  }
-
   previousMessages.push({
     role: sender,
     content: text
@@ -101,10 +97,14 @@ function addMessageToList(text, sender) {
   }
 }
 
+function cleanupText(text) {
+  return text.replaceAll(/---([\w.]+)---(.+?)---([\w.]+) end---/gs, (_, fileName) => '`' + fileName + '`');
+}
+
 function updateChatList() {
   chatList.innerHTML = previousMessages.map(message => `
     <li class="${message.role === 'assistant' || message.role === 'system' ? 'ai-message' : 'user-message'}">
-      <div class="message-text">${marked.marked(message.content)}</div>
+      <div class="message-text">${marked.marked(cleanupText(message.content))}</div>
     </li>
   `).join('\n');
   chatList.scrollTop = chatList.scrollHeight;
