@@ -15,6 +15,8 @@ I can take any input info from you and then create a website for you.
 I'll start by listing website outline and what info is included in every section.
 I'm not going to ask any questions. I'll improvise based on my training data.
 
+I'll use placeholder.it images.
+
 I'll output content of every file in the website.
 
 I'll represent every file in output like this:
