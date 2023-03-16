@@ -107,7 +107,7 @@ function updateChatList() {
       <div class="message-text">${marked.marked(cleanupText(message.content))}</div>
     </li>
   `).join('\n');
-  chatList.scrollTop = chatList.scrollHeight;
+  document.querySelector('.chat-history').scrollTop = document.querySelector('.chat-history').scrollHeight;
 }
 
 function updateFile(name, content) {
