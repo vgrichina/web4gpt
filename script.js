@@ -93,7 +93,7 @@ function addMessageToList(text, sender) {
     processAiResponse(text);
     updateChatList();
     updateFileList();
-    previewWebsite();
+    previewWebsite('index.html');
   }
 }
 
@@ -139,6 +139,9 @@ function clickFile(event) {
       .catch(error => console.error('Error:', error));
     document.querySelector('.file-summary').innerHTML = 'Loading...';
 
+    if (fileName.endsWith('.html')) {
+      previewWebsite(fileName);
+    }
   }
 }
 
@@ -170,13 +173,13 @@ function replaceUrls(content, links) {
   return content;
 }
 
-function previewWebsite() {
+function previewWebsite(fileName) {
   for (let file of files) {
     const url = URL.createObjectURL(new Blob([file.content], { type: detectMimeType(file.name) }));
     file.url = url;
   }
 
-  const index = files.find(file => file.name === 'index.html');
+  const index = files.find(file => file.name === fileName);
   document.querySelector('.website-preview').srcdoc = replaceUrls(index.content, files);
 }
 
