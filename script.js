@@ -58,8 +58,8 @@ const objectUrlCache = {};
 
 const ChatApp = () => {
   const [userInput, setUserInput] = useState('');
-  const [messages, setMessages] = useState(initialMessages);
-  const [files, setFiles] = useState(initialFiles);
+  const [messages, setMessages] = useState(JSON.parse(localStorage.getItem('web4gpt:messages') || JSON.stringify(initialMessages)));
+  const [files, setFiles] = useState(JSON.parse(localStorage.getItem('web4gpt:files') || JSON.stringify(initialFiles)));
   const [fileContent, setFileContent] = useState('');
   const [fileSummary, setFileSummary] = useState('');
   const [websitePreview, setWebsitePreview] = useState('');
@@ -81,6 +81,14 @@ const ChatApp = () => {
       processAiResponse(lastMessage.content);
     }
   }, [messages]);
+
+  useEffect(() => {
+    localStorage.setItem('web4gpt:messages', JSON.stringify(messages));
+  }, [messages]);
+
+  useEffect(() => {
+    localStorage.setItem('web4gpt:files', JSON.stringify(files));
+  }, [files]);
 
   const onUserInputChange = (e) => {
     setUserInput(e.target.value);
