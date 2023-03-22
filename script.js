@@ -198,11 +198,11 @@ const ChatApp = () => {
     setWebsitePreview(replaceUrls(index.content));
   };
 
-  async function* getAiResponseStream(userInput) {
+  async function requestCompletions({ messages, stream = false }) {
     const requestBody = {
       model: 'gpt-3.5-turbo',
-      messages: [...messages, { role: 'user', content: userInput }],
-      stream: true,
+      messages,
+      stream,
     };
 
     const response = await fetch(apiUrl, {
@@ -214,6 +214,27 @@ const ChatApp = () => {
       body: JSON.stringify(requestBody),
     });
 
+    return response;
+  }
+
+  async function* getAiResponseStream(userInput) {
+    const response = await requestCompletions({
+      messages: [...messages, { role: 'user', content: userInput }],
+      stream: true
+    });
+
+    console.log('response', response)
+    if (!response.ok) {
+      const { error } = await response.json();
+      console.log('error', error);
+
+      throw new Error(`Error from AI: ${error.message}`);
+    }
+
+    yield* parseAiResponseStream(response);
+  }
+
+  async function* parseAiResponseStream(response) {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
 
@@ -240,18 +261,8 @@ const ChatApp = () => {
   };
 
   async function getAiResponse(userInput) {
-    const requestBody = {
-      model: 'gpt-3.5-turbo',
-      messages: [...messages, { role: 'user', content: userInput }],
-    };
-
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(requestBody),
+    const response = await requestCompletions({
+      messages: [...messages, { role: 'user', content: userInput }]
     });
 
     const data = await response.json();
