@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactSrcDocIframe from 'react-srcdoc-iframe';
 import * as ReactDOMClient from 'react-dom/client';
 import { marked } from 'marked';
 
@@ -53,6 +54,8 @@ const initialFiles = [
   }
 ];
 
+const objectUrlCache = {};
+
 const ChatApp = () => {
   const [userInput, setUserInput] = useState('');
   const [messages, setMessages] = useState(initialMessages);
@@ -94,7 +97,6 @@ const ChatApp = () => {
       } else {
         updatedFiles[index] = { ...updatedFiles[index], content: fileContent };
       }
-      console.log('setFiles: ', updatedFiles);
       return updatedFiles;
     });
   };
@@ -128,36 +130,36 @@ const ChatApp = () => {
     const file = files.find((file) => file.name === fileName);
     if (file) {
       setFileContent(file.content);
-      const aiResponse = await getAiResponse(`Please give a short summary of the following file: ${fileName}\n\n${file.content}`);
-      setFileSummary(aiResponse);
       if (fileName.endsWith('.html')) {
         previewWebsite(fileName);
       }
+      const aiResponse = await getAiResponse(`Please give a short summary of the following file: ${fileName}\n\n${file.content}`);
+      setFileSummary(aiResponse);
     }
   };
 
-  function replaceUrls(content, links) {
-    for (let link of links) {
-      content = content.replaceAll(link.name, link.url);
+  function replaceUrls(content) {
+    for (let file of files) {
+      content = content.replaceAll(file.name, objectURLForFile(file));
     }
+    console.log('replaceUrls: ', content);
     return content;
   }
 
+  function objectURLForFile(file) {
+    const type = detectMimeType(file.name);
+    const key = type + '\n' + file.content;
+    if (objectUrlCache[key]) {
+      return objectUrlCache[key];
+    }
+    const url = URL.createObjectURL(new Blob([file.content], { type }));
+    objectUrlCache[key] = url;
+    return url;
+  }
+
   const previewWebsite = (fileName) => {
-    let updatedFiles;
-    setFiles((prevFiles) => {
-      // TODO: Probably not cleanest way to access updated files
-      updatedFiles = prevFiles.map((file) => {
-        const url = URL.createObjectURL(new Blob([file.content], { type: detectMimeType(file.name) }));
-        return { ...file, url };
-      });
-
-      return updatedFiles;
-    });
-
-    // TODO: Figure out clean way to implement this
-    // const index = updatedFiles.find((file) => file.name === fileName);
-    // setWebsitePreview(replaceUrls(index.content, updatedFiles));
+    const index = files.find((file) => file.name === fileName);
+    setWebsitePreview(replaceUrls(index.content));
   };
 
   const getAiResponse = async (userInput) => {
@@ -256,7 +258,7 @@ const ChatApp = () => {
         </div>
   
         <div className="website-preview-container">
-          <iframe
+          <ReactSrcDocIframe
             className="website-preview"
             srcDoc={websitePreview}
             title="Website Preview"
