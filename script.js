@@ -228,6 +228,26 @@ const ChatApp = () => {
       const { error } = await response.json();
       console.log('error', error);
 
+      if (error.code === 'context_length_exceeded') {
+        // TODO: Tune this hack
+        const summaryResponse = await requestCompletions({
+          // NOTE: Skip system instructions for summary
+          messages: [...messages.slice(1), { role: 'user', content: 'Please summarize previous messages. Make sure to include latest user input and website outline. It should be enough info to rebuilf website.' }],
+          stream: true
+        });
+
+        yield* parseAiResponseStream(summaryResponse);
+
+        const nextResponse = await requestCompletions({
+          messages: [messages[0], messages[messages.length - 1], { role: 'user', content: userInput }],
+          stream: true
+        });
+
+        yield* parseAiResponseStream(nextResponse);
+
+        return;
+      }
+
       throw new Error(`Error from AI: ${error.message}`);
     }
 
