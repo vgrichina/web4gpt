@@ -319,7 +319,9 @@ const ChatApp = () => {
         </div>
   
         <div className="file-content-container">
-          <div className="file-content">{fileContent}</div>
+          <div className="file-content">
+            <pre><code>{fileContent}</code></pre>
+          </div>
         </div>
         <div className="file-summary-container">
           <div className="file-summary" dangerouslySetInnerHTML={{ __html: marked(fileSummary || '') }} />
