@@ -1,13 +1,14 @@
-const chatForm = document.getElementById('chat-form');
-const chatInput = document.getElementById('chat-message');
-const chatList = document.getElementById('chat-list');
+import React, { useState, useEffect, useRef } from 'react';
+import * as ReactDOMClient from 'react-dom/client';
+import { marked } from 'marked';
 
 const apiUrl = 'https://api.openai.com/v1/chat/completions';
 const apiKey = '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'; // replace with your OpenAI API key
 
-const previousMessages = [{
-  role: 'system',
-  content: `
+const initialMessages = [
+  {
+    role: 'system',
+    content: `
 Hi! I'm a chatbot that is good at making simple websites for it's users.
 
 I can take any input info from you and then create a website for you.
@@ -31,26 +32,12 @@ I'll represent every file in output like this:
 </body>
 </html>
 ---index.html end---
-  `
-}];
+  
+I'm going to put all files top-level and avoid using Markdown in output.
 
-// handle form submission
-chatForm.addEventListener('submit', e => {
-  e.preventDefault();
-  const userInput = chatInput.value.trim();
-  if (userInput !== '') {
-    addMessageToList(userInput, 'user');
-    chatInput.value = '';
-    getAiResponse()
-      .then(data => {
-        const aiResponse = data.choices[0].message.content.trim();
-        addMessageToList(aiResponse, 'assistant');
-      })
-      .catch(error => console.error('Error:', error));
-  }
-});
+`}];
 
-const files = [
+const initialFiles = [
   {
     name: 'index.html',
     content: `
@@ -65,148 +52,224 @@ const files = [
     `
   }
 ];
-updateFileList();
-updateChatList();
 
-function processAiResponse(text) {
-  // Extract files from AI response
-  const files = text.matchAll(/---([\w.]+)---(.+?)---([\w.]+) end---/gs);
-  // ---file_name.ext--- - start of file
-  // (.+) - file content
-  // ---file_name.ext end--- - end of file
+const ChatApp = () => {
+  const [userInput, setUserInput] = useState('');
+  const [messages, setMessages] = useState(initialMessages);
+  const [files, setFiles] = useState(initialFiles);
+  const [fileContent, setFileContent] = useState('');
+  const [fileSummary, setFileSummary] = useState('');
+  const [websitePreview, setWebsitePreview] = useState('');
+  const chatBottomRef = useRef(null);
 
-  for (let file of files) {
-    const [, fileName, fileContent] = file;
-    console.log('file name: ', fileName, 'file content: ', fileContent);
-    updateFile(fileName, fileContent);
-  }
-}
-
-// add message to chat list
-function addMessageToList(text, sender) {
-  previousMessages.push({
-    role: sender,
-    content: text
-  });
-
-  updateChatList();
-
-  if (sender === 'assistant') {
-    processAiResponse(text);
-    updateChatList();
-    updateFileList();
+  useEffect(() => {
     previewWebsite('index.html');
-  }
-}
+  }, []);
 
-function cleanupText(text) {
-  return text.replaceAll(/---([\w.]+)---(.+?)---([\w.]+) end---/gs, (_, fileName) => '`' + fileName + '`');
-}
+  useEffect(() => {
+    // Scroll to bottom of chat
+    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-function updateChatList() {
-  chatList.innerHTML = previousMessages.map(message => `
-    <li class="${message.role === 'assistant' || message.role === 'system' ? 'ai-message' : 'user-message'}">
-      <div class="message-text">${marked.marked(cleanupText(message.content))}</div>
-    </li>
-  `).join('\n');
-  document.querySelector('.chat-history').scrollTop = document.querySelector('.chat-history').scrollHeight;
-}
-
-function updateFile(name, content) {
-  const file = files.find(file => file.name === name);
-  if (file) {
-    file.content = content;
-  } else {
-    files.push({
-      name,
-      content
-    });
-  }
-}
-
-function clickFile(event) {
-  const fileName = event.target.textContent;
-  const file = files.find(file => file.name === fileName);
-  if (file) {
-    const fileContent = file.content;
-    // Set .file-content
-    const fileContentElement = document.querySelector('.file-content');
-    fileContentElement.textContent = fileContent;
-
-    getAiResponse(`Please give short summary of the following file: ${fileName}\n\n${fileContent}`)
-      .then(data => {
-        const aiResponse = data.choices[0].message.content.trim();
-        document.querySelector('.file-summary').innerHTML = marked.marked(aiResponse);
-      })
-      .catch(error => console.error('Error:', error));
-    document.querySelector('.file-summary').innerHTML = 'Loading...';
-
-    if (fileName.endsWith('.html')) {
-      previewWebsite(fileName);
-    }
-  }
-}
-
-function updateFileList() {
-  const fileList = document.querySelector('.file-list');
-  fileList.innerHTML = files.map(file => `
-    <li onclick="clickFile(event)">${file.name}</li>
-  `).join('\n'); // TODO: encode file name
-}
-
-function detectMimeType(fileName) {
-  const extension = fileName.split('.').pop();
-  if (extension === 'html') {
-    return 'text/html';
-  } else if (extension === 'css') {
-    return 'text/css';
-  } else if (extension === 'js') {
-    return 'text/javascript';
-  } else {
-    return 'text/plain';
-  }
-}
-
-function replaceUrls(content, links) {
-  for (let link of links) {
-    content = content.replaceAll(link.name, link.url);
-  }
-
-  return content;
-}
-
-function previewWebsite(fileName) {
-  for (let file of files) {
-    const url = URL.createObjectURL(new Blob([file.content], { type: detectMimeType(file.name) }));
-    file.url = url;
-  }
-
-  const index = files.find(file => file.name === fileName);
-  document.querySelector('.website-preview').srcdoc = replaceUrls(index.content, files);
-}
-
-function getAiResponse(userInput) {
-  const messages = [...previousMessages];
-
-  if (userInput) {
-    messages.push({
-      role: 'user',
-      content: userInput
-    });
-  }
-
-  const requestBody = {
-    model: 'gpt-3.5-turbo',
-    messages
+  const onUserInputChange = (e) => {
+    setUserInput(e.target.value);
   };
 
-  return fetch(apiUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify(requestBody)
-  })
-  .then(response => response.json())
-}
+  const onFormSubmit = async (e) => {
+    e.preventDefault();
+    if (userInput.trim() === '') return;
+    addMessageToList(userInput.trim(), 'user');
+    setUserInput('');
+    const aiResponse = await getAiResponse(userInput.trim());
+    addMessageToList(aiResponse, 'assistant');
+  };
+
+  const updateFile = (fileName, fileContent) => {
+    console.log('updating file: ', fileName, 'with content: ', fileContent);
+    setFiles((prevFiles) => {
+      const updatedFiles = [...prevFiles];
+      const index = updatedFiles.findIndex((file) => file.name === fileName);
+      if (index === -1) {
+        updatedFiles.push({ name: fileName, content: fileContent });
+      } else {
+        updatedFiles[index] = { ...updatedFiles[index], content: fileContent };
+      }
+      console.log('setFiles: ', updatedFiles);
+      return updatedFiles;
+    });
+  };
+
+  const processAiResponse = (text) => {
+    // Extract files from AI response
+    const files = text.matchAll(/---([\w.-]+)---(.+?)---([\w.-]+) end---/gs);
+    // ---file_name.ext--- - start of file
+    // (.+) - file content
+    // ---file_name.ext end--- - end of file
+
+    for (let file of files) {
+      const [, fileName, fileContent] = file;
+      console.log('file name: ', fileName, 'file content: ', fileContent);
+      updateFile(fileName, fileContent);
+    }
+  }
+
+  function cleanupText(text) {
+    return text.replaceAll(/---([\w.-]+)---(.+?)---([\w.-]+) end---/gs, (_, fileName) => '`' + fileName + '`');
+  }
+
+  const addMessageToList = (text, sender) => {
+    setMessages((prevMessages) => [...prevMessages, { role: sender, content: text }]);
+    if (sender === 'assistant') {
+      processAiResponse(text);
+    }
+  };
+
+  const clickFile = async (fileName) => {
+    const file = files.find((file) => file.name === fileName);
+    if (file) {
+      setFileContent(file.content);
+      const aiResponse = await getAiResponse(`Please give a short summary of the following file: ${fileName}\n\n${file.content}`);
+      setFileSummary(aiResponse);
+      if (fileName.endsWith('.html')) {
+        previewWebsite(fileName);
+      }
+    }
+  };
+
+  function replaceUrls(content, links) {
+    for (let link of links) {
+      content = content.replaceAll(link.name, link.url);
+    }
+    return content;
+  }
+
+  const previewWebsite = (fileName) => {
+    let updatedFiles;
+    setFiles((prevFiles) => {
+      // TODO: Probably not cleanest way to access updated files
+      updatedFiles = prevFiles.map((file) => {
+        const url = URL.createObjectURL(new Blob([file.content], { type: detectMimeType(file.name) }));
+        return { ...file, url };
+      });
+
+      return updatedFiles;
+    });
+
+    // TODO: Figure out clean way to implement this
+    // const index = updatedFiles.find((file) => file.name === fileName);
+    // setWebsitePreview(replaceUrls(index.content, updatedFiles));
+  };
+
+  const getAiResponse = async (userInput) => {
+    const requestBody = {
+      model: 'gpt-3.5-turbo',
+      messages: [...messages, { role: 'user', content: userInput }],
+    };
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`, // Replace with your OpenAI API key
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    const data = await response.json();
+    const aiResponse = data.choices[0].message.content.trim();
+    return aiResponse;
+  };
+
+  function detectMimeType(fileName) {
+    const extension = fileName.split('.').pop();
+    if (extension === 'html') {
+      return 'text/html';
+    } else if (extension === 'css') {
+      return 'text/css';
+    } else if (extension === 'js') {
+      return 'text/javascript';
+    } else {
+      return 'text/plain';
+    }
+  }
+
+  const ChatMessage = ({ message }) => {
+    return (
+      <li className={message.role === 'assistant' || message.role === 'system' ? 'ai-message' : 'user-message'}>
+        <div className="message-text" dangerouslySetInnerHTML={{ __html: marked(cleanupText(message.content)) }} />
+      </li>
+    );
+  };
+  
+  const FileListItem = ({ file, onClick }) => {
+    return (
+      <li onClick={() => onClick(file.name)} className="file-list-item">
+        {file.name}
+      </li>
+    );
+  };
+  
+  return (
+    <div className="container">
+      {/* Left column */}
+      <div className="left-column">
+        <div className="chat-container">
+          <div className="chat-header">Chat</div>
+          <div className="chat-history">
+            <ul id="chat-list">
+              {messages.map((message, index) => (
+                <ChatMessage key={index} message={message} />
+              ))}
+            </ul>
+            <div ref={chatBottomRef}></div>
+          </div>
+          <div className="chat-input">
+            <form onSubmit={onFormSubmit}>
+              <input
+                type="text"
+                id="chat-message"
+                value={userInput}
+                onChange={onUserInputChange}
+                placeholder="Type your message here..."
+              />
+              <button type="submit">Send</button>
+            </form>
+          </div>
+        </div>
+      </div>
+  
+      {/* Right column */}
+      <div className="right-column">
+        <div className="file-list-container">
+          <div className="file-list">
+            <ul className="file-list">
+              {files.map((file, index) => (
+                <FileListItem key={index} file={file} onClick={clickFile} />
+              ))}
+            </ul>
+          </div>
+        </div>
+  
+        <div className="file-content-container">
+          <div className="file-content">{fileContent}</div>
+          <div className="file-summary" dangerouslySetInnerHTML={{ __html: marked(fileSummary) }} />
+        </div>
+  
+        <div className="website-preview-container">
+          <iframe
+            className="website-preview"
+            srcDoc={websitePreview}
+            title="Website Preview"
+            frameBorder="0"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ChatApp;
+
+const rootElement = document.getElementById('root');
+const root = ReactDOMClient.createRoot(rootElement);
+root.render(<ChatApp />);
