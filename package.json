@@ -1,7 +1,6 @@
 {
   "name": "web4gpt",
   "version": "0.0.1",
-  "main": "index.js",
   "author": "Vladimir Grichina <vgrichina@gmail.com>",
   "license": "MIT",
   "scripts": {
