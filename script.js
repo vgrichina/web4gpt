@@ -155,6 +155,13 @@ const ChatApp = () => {
     });
   };
 
+  const deleteMessage = (message) => {
+    setMessages((prevMessages) => {
+      const index = prevMessages.indexOf(message);
+      return [...prevMessages.slice(0, index), ...prevMessages.slice(index + 1)]
+    });
+  };
+
   const clickFile = async (fileName) => {
     const file = files.find((file) => file.name === fileName);
     if (file) {
@@ -273,6 +280,7 @@ const ChatApp = () => {
     return (
       <li className={message.role === 'assistant' || message.role === 'system' ? 'ai-message' : 'user-message'}>
         <div className="message-text" dangerouslySetInnerHTML={{ __html: marked(cleanupText(message.content)) }} />
+        <a href='#' className="message-delete" onClick={() => deleteMessage(message)}>Delete</a>
       </li>
     );
   };

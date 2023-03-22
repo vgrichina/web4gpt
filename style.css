@@ -55,7 +55,18 @@ body {
   max-width: 70%;
 }
 
+.message-delete {
+  font-size: 0.8rem;
+  color: #000000;
+  cursor: pointer;
+  display: block;
+  position: absolute;
+  top: 0.5em;
+  right: 1em;
+}
+
 .user-message {
+  position: relative;
   margin-right: 0;
   margin-left: auto;
   background-color: #cce5ff;
@@ -63,6 +74,7 @@ body {
 }
 
 .ai-message {
+  position: relative;
   margin-right: auto;
   margin-left: 0;
   background-color: #f0f0f0;
