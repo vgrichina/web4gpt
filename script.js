@@ -74,6 +74,14 @@ const ChatApp = () => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  useEffect(() => {
+    // Update file list based on last message
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage.role === 'assistant') {
+      processAiResponse(lastMessage.content);
+    }
+  }, [messages]);
+
   const onUserInputChange = (e) => {
     setUserInput(e.target.value);
   };
@@ -83,8 +91,10 @@ const ChatApp = () => {
     if (userInput.trim() === '') return;
     addMessageToList(userInput.trim(), 'user');
     setUserInput('');
-    const aiResponse = await getAiResponse(userInput.trim());
-    addMessageToList(aiResponse, 'assistant');
+    addMessageToList('', 'assistant');
+    for await (let aiResponse of getAiResponseStream(userInput.trim())) {
+      appendToLastMessage(aiResponse);
+    }
   };
 
   const updateFile = (fileName, fileContent) => {
@@ -126,6 +136,17 @@ const ChatApp = () => {
     }
   };
 
+  const appendToLastMessage = (text) => {
+    setMessages((prevMessages) => {
+      // TODO: Find message to update by ID?
+      const lastMessage = prevMessages[prevMessages.length - 1];
+      if (lastMessage.role === 'assistant') {
+        return [...prevMessages.slice(0, -1), { ...lastMessage, content: lastMessage.content + text }];
+      }
+      return prevMessages;
+    });
+  };
+
   const clickFile = async (fileName) => {
     const file = files.find((file) => file.name === fileName);
     if (file) {
@@ -162,7 +183,48 @@ const ChatApp = () => {
     setWebsitePreview(replaceUrls(index.content));
   };
 
-  const getAiResponse = async (userInput) => {
+  async function* getAiResponseStream(userInput) {
+    const requestBody = {
+      model: 'gpt-3.5-turbo',
+      messages: [...messages, { role: 'user', content: userInput }],
+      stream: true,
+    };
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { value, done: readerDone } = await reader.read();
+      if (readerDone) {
+        return;
+      }
+
+      const text = decoder.decode(value);
+      const chunks = text.split('\n\n');
+      for (let chunk of chunks) {
+        if (chunk.startsWith('data: ') && chunk != 'data: [DONE]') {
+          const data = JSON.parse(chunk.slice(6));
+          const content = data.choices[0].delta.content;
+          if (content && content.length > 0) {
+            yield content;
+          }
+        } else {
+          console.log('unprocessed chunk: ', chunk);
+        }
+      }
+    }
+  };
+
+  async function getAiResponse(userInput) {
     const requestBody = {
       model: 'gpt-3.5-turbo',
       messages: [...messages, { role: 'user', content: userInput }],
@@ -172,15 +234,19 @@ const ChatApp = () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`, // Replace with your OpenAI API key
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify(requestBody),
     });
 
     const data = await response.json();
-    const aiResponse = data.choices[0].message.content.trim();
-    return aiResponse;
-  };
+    if (data.choices) {
+      return data.choices[0].message.content;
+    }
+
+    console.log('unexpected response: ', data);
+    return '';
+  }
 
   function detectMimeType(fileName) {
     const extension = fileName.split('.').pop();
@@ -256,7 +322,7 @@ const ChatApp = () => {
           <div className="file-content">{fileContent}</div>
         </div>
         <div className="file-summary-container">
-          <div className="file-summary" dangerouslySetInnerHTML={{ __html: marked(fileSummary) }} />
+          <div className="file-summary" dangerouslySetInnerHTML={{ __html: marked(fileSummary || '') }} />
         </div>
   
         <div className="website-preview-container">
