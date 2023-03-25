@@ -4,6 +4,8 @@ import * as ReactDOMClient from 'react-dom/client';
 import { marked } from 'marked';
 import insane from 'insane';
 
+import useDebounce from './hooks/use-debounce';
+
 const apiUrl = 'https://api.openai.com/v1/chat/completions';
 const apiKey = process.env.OPENAPI_KEY;
 
@@ -77,13 +79,14 @@ const ChatApp = () => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Update file list based on last message
+  const lastAiResponse = (messages.findLast((message) => message.role === 'assistant') || { content: '' }).content;
+  const debouncedLastAiResponse = useDebounce(lastAiResponse, 1000);
   useEffect(() => {
-    // Update file list based on last message
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage.role === 'assistant') {
-      processAiResponse(lastMessage.content);
-    }
-  }, [messages]);
+    if (debouncedLastAiResponse.trim() === '') return;
+
+    processAiResponse(debouncedLastAiResponse);
+  }, [lastAiResponse.content]);
 
   useEffect(() => {
     localStorage.setItem('web4gpt:messages', JSON.stringify(messages));
