@@ -86,7 +86,7 @@ const ChatApp = () => {
     if (debouncedLastAiResponse.trim() === '') return;
 
     processAiResponse(debouncedLastAiResponse);
-  }, [lastAiResponse.content]);
+  }, [debouncedLastAiResponse]);
 
   useEffect(() => {
     localStorage.setItem('web4gpt:messages', JSON.stringify(messages));
