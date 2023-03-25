@@ -195,6 +195,12 @@ const ChatApp = () => {
 
   const previewWebsite = (fileName) => {
     const index = files.find((file) => file.name === fileName);
+    if (!index) {
+      setWebsitePreview(`
+        <h1>File not found</h1>
+        <p>Could not find file ${fileName}</p>`);
+      return;
+    }
     setWebsitePreview(replaceUrls(index.content));
   };
 
@@ -307,6 +313,16 @@ const ChatApp = () => {
     }
   }
 
+  function resetChat() {
+    if (confirm('Are you sure you want to reset the chat? You gonna lose all your progress.')) {
+      setMessages(initialMessages);
+      setFiles([]);
+      setFileContent('');
+      setFileSummary('');
+      setWebsitePreview('');
+    }
+  }
+
   const ChatMessage = ({ message }) => {
     return (
       <li className={message.role === 'assistant' || message.role === 'system' ? 'ai-message' : 'user-message'}>
@@ -329,7 +345,10 @@ const ChatApp = () => {
       {/* Left column */}
       <div className="left-column">
         <div className="chat-container">
-          <div className="chat-header">Chat</div>
+          <div className="chat-header">
+            Chat
+            <a className="reset-button" href="#" onClick={resetChat}>Reset</a>
+          </div>
           <div className="chat-history">
             <ul id="chat-list">
               {messages.map((message, index) => (

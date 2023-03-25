@@ -29,6 +29,7 @@ body {
 /* Chat header styles */
 .chat-header {
   display: flex;
+  position: relative;
   align-items: center;
   justify-content: center;
   background-color: #002f6c;
@@ -38,6 +39,16 @@ body {
   border-top-right-radius: 5px;
   font-size: 1.5rem;
   font-weight: bold;
+}
+
+.reset-button {
+  font-size: 0.8rem;
+  color: #ffffff;
+  cursor: pointer;
+  display: block;
+  position: absolute;
+  top: 0.5em;
+  right: 1em;
 }
 
 /* Chat history styles */
