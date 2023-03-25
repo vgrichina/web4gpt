@@ -4,7 +4,7 @@ import * as ReactDOMClient from 'react-dom/client';
 import { marked } from 'marked';
 
 const apiUrl = 'https://api.openai.com/v1/chat/completions';
-const apiKey = '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'; // replace with your OpenAI API key
+const apiKey = process.env.OPENAPI_KEY;
 
 const initialMessages = [
   {
@@ -33,7 +33,7 @@ I'll represent every file in output like this:
 </body>
 </html>
 ---index.html end---
-  
+
 I'm going to put all files top-level and avoid using Markdown in output.
 
 `}];
@@ -315,7 +315,7 @@ const ChatApp = () => {
       </li>
     );
   };
-  
+
   const FileListItem = ({ file, onClick }) => {
     return (
       <li onClick={() => onClick(file.name)} className="file-list-item">
@@ -323,7 +323,7 @@ const ChatApp = () => {
       </li>
     );
   };
-  
+
   return (
     <div className="container">
       {/* Left column */}
@@ -352,7 +352,7 @@ const ChatApp = () => {
           </div>
         </div>
       </div>
-  
+
       {/* Right column */}
       <div className="right-column">
         <div className="file-list-container">
@@ -364,7 +364,7 @@ const ChatApp = () => {
             </ul>
           </div>
         </div>
-  
+
         <div className="file-content-container">
           <div className="file-content">
             <pre><code>{fileContent}</code></pre>
@@ -373,7 +373,7 @@ const ChatApp = () => {
         <div className="file-summary-container">
           <div className="file-summary" dangerouslySetInnerHTML={{ __html: marked(fileSummary || '') }} />
         </div>
-  
+
         <div className="website-preview-container">
           <ReactSrcDocIframe
             className="website-preview"
