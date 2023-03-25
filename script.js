@@ -303,7 +303,7 @@ const ChatApp = () => {
           if (content && content.length > 0) {
             yield content;
           }
-        } else {
+        } else if (chunk.length > 0) {
           console.log('unprocessed chunk: ', chunk);
         }
       }
