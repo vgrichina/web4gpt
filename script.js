@@ -65,6 +65,8 @@ const ChatApp = () => {
   const [websitePreview, setWebsitePreview] = useState('');
   const chatBottomRef = useRef(null);
 
+  let abortController = useRef(null);
+
   useEffect(() => {
     previewWebsite('index.html');
   }, []);
@@ -99,9 +101,26 @@ const ChatApp = () => {
     if (userInput.trim() === '') return;
     addMessageToList(userInput.trim(), 'user');
     setUserInput('');
+
+    if (abortController.current) {
+      console.warn('aborting previous request');
+      abortController.current.abort();
+    }
+    abortController.current = new AbortController();
+
     addMessageToList('', 'assistant');
-    for await (let aiResponse of getAiResponseStream(userInput.trim())) {
-      appendToLastMessage(aiResponse);
+    try {
+      for await (let aiResponse of getAiResponseStream(userInput.trim(), { signal: abortController.current.signal })) {
+        appendToLastMessage(aiResponse);
+      }
+    } catch (error) {
+      console.error('Error in for await loop: ', error);
+
+      if (error.name === 'AbortError') {
+        console.warn('Request was aborted');
+      } else {
+        throw error;
+      }
     }
   };
 
@@ -204,32 +223,31 @@ const ChatApp = () => {
     setWebsitePreview(replaceUrls(index.content));
   };
 
-  async function requestCompletions({ messages, stream = false }) {
+  async function requestCompletions({ messages, stream = false, signal }) {
     const requestBody = {
       model: 'gpt-3.5-turbo',
       messages,
       stream,
     };
 
-    const response = await fetch(apiUrl, {
+    return await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify(requestBody),
+      signal
     });
-
-    return response;
   }
 
-  async function* getAiResponseStream(userInput) {
+  async function* getAiResponseStream(userInput, { signal } = {}) {
     const response = await requestCompletions({
       messages: [...messages, { role: 'user', content: userInput }],
-      stream: true
+      stream: true,
+      signal
     });
 
-    console.log('response', response)
     if (!response.ok) {
       const { error } = await response.json();
       console.log('error', error);
@@ -239,14 +257,16 @@ const ChatApp = () => {
         const summaryResponse = await requestCompletions({
           // NOTE: Skip system instructions for summary
           messages: [...messages.slice(1), { role: 'user', content: 'Please summarize previous messages. Make sure to include latest user input and website outline. It should be enough info to rebuilf website.' }],
-          stream: true
+          stream: true,
+          signal
         });
 
         yield* parseAiResponseStream(summaryResponse);
 
         const nextResponse = await requestCompletions({
           messages: [messages[0], messages[messages.length - 1], { role: 'user', content: userInput }],
-          stream: true
+          stream: true,
+          signal
         });
 
         yield* parseAiResponseStream(nextResponse);
