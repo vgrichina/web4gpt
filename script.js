@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactSrcDocIframe from 'react-srcdoc-iframe';
 import * as ReactDOMClient from 'react-dom/client';
 import { marked } from 'marked';
+import insane from 'insane';
 
 const apiUrl = 'https://api.openai.com/v1/chat/completions';
 const apiKey = process.env.OPENAPI_KEY;
@@ -346,7 +347,7 @@ const ChatApp = () => {
   const ChatMessage = ({ message }) => {
     return (
       <li className={message.role === 'assistant' || message.role === 'system' ? 'ai-message' : 'user-message'}>
-        <div className="message-text" dangerouslySetInnerHTML={{ __html: marked(cleanupText(message.content)) }} />
+        <div className="message-text" dangerouslySetInnerHTML={{ __html: insane(marked(cleanupText(message.content))) }} />
         <a href='#' className="message-delete" onClick={() => deleteMessage(message)}>Delete</a>
       </li>
     );
@@ -410,7 +411,7 @@ const ChatApp = () => {
           </div>
         </div>
         <div className="file-summary-container">
-          <div className="file-summary" dangerouslySetInnerHTML={{ __html: marked(fileSummary || '') }} />
+          <div className="file-summary" dangerouslySetInnerHTML={{ __html: insane(marked(fileSummary || '')) }} />
         </div>
 
         <div className="website-preview-container">
