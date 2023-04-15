@@ -6,6 +6,7 @@ import insane from 'insane';
 
 import useDebounce from './hooks/use-debounce';
 import { uploadFiles } from './utils/nearfs-upload';
+import { deploy } from './utils/deploy-contract';
 
 const apiUrl = 'https://api.openai.com/v1/chat/completions';
 const apiKey = process.env.OPENAPI_KEY;
@@ -71,7 +72,9 @@ const ChatApp = () => {
 
   let abortController = useRef(null);
 
-  const isLoggedIn = document.cookie.split('; ').some((row) => row.startsWith('web4_account_id='));
+  const accountIdCookie = document.cookie.split('; ').find((row) => row.startsWith('web4_account_id='));
+  const accountId = accountIdCookie ? accountIdCookie.split('=')[1] : null;
+  const isLoggedIn = !!accountId;
 
   useEffect(() => {
     previewWebsite('index.html');
@@ -352,6 +355,7 @@ const ChatApp = () => {
 
   async function deployWebsite() {
     await uploadFiles(files);
+    await deploy({ accountId });
   }
 
   const ChatMessage = ({ message }) => {
