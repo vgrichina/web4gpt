@@ -5,6 +5,7 @@ import { marked } from 'marked';
 import insane from 'insane';
 
 import useDebounce from './hooks/use-debounce';
+import { uploadFiles } from './utils/nearfs-upload';
 
 const apiUrl = 'https://api.openai.com/v1/chat/completions';
 const apiKey = process.env.OPENAPI_KEY;
@@ -69,6 +70,8 @@ const ChatApp = () => {
   const chatBottomRef = useRef(null);
 
   let abortController = useRef(null);
+
+  const isLoggedIn = document.cookie.split('; ').some((row) => row.startsWith('web4_account_id='));
 
   useEffect(() => {
     previewWebsite('index.html');
@@ -347,6 +350,10 @@ const ChatApp = () => {
     }
   }
 
+  async function deployWebsite() {
+    await uploadFiles(files);
+  }
+
   const ChatMessage = ({ message }) => {
     return (
       <li className={message.role === 'assistant' || message.role === 'system' ? 'ai-message' : 'user-message'}>
@@ -370,6 +377,10 @@ const ChatApp = () => {
       <div className="left-column">
         <div className="chat-container">
           <div className="chat-header">
+            {isLoggedIn
+              ? <a className="deploy-button" href="#" onClick={deployWebsite}>Deploy</a>
+              : <a className="login-button" href="/web4/login?web4_contract_id=web4gpt.near">Login</a>
+            }
             Chat
             <a className="reset-button" href="#" onClick={resetChat}>Reset</a>
           </div>

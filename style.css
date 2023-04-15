@@ -41,6 +41,16 @@ body {
   font-weight: bold;
 }
 
+.login-button {
+  font-size: 0.8rem;
+  color: #ffffff;
+  cursor: pointer;
+  display: block;
+  position: absolute;
+  top: 0.5em;
+  left: 1em;
+}
+
 .reset-button {
   font-size: 0.8rem;
   color: #ffffff;
