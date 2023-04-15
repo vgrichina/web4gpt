@@ -1,15 +1,16 @@
 import { BrowserLocalStorageKeyStore } from 'near-api-js/lib/key_stores';
 import { KeyPair, PublicKey } from 'near-api-js/lib/utils';
-import { Transaction, createAccount, transfer, addKey, fullAccessKey } from 'near-api-js/lib/transaction';
+import { Transaction, createAccount, transfer, addKey, fullAccessKey, deployContract, functionCall, signTransaction } from 'near-api-js/lib/transaction';
 import { parseNearAmount } from 'near-api-js/lib/utils/format';
 import { InMemorySigner } from 'near-api-js/lib/signer';
 import { signTransactionsURL } from './web-wallet-api';
+import { base_decode } from 'near-api-js/lib/utils/serialize';
 
 
 const NETWORK_ID = 'default';
 const WALLET_URL = 'https://wallet.near.org';
 const FAST_NEAR_URL = 'https://rpc.web4.near.page';
-const TEMPLATE_CONTRACT_NAME = 'vlad.near'; // TODO: Change to whatever has min contract 
+const TEMPLATE_CONTRACT_NAME = 'web4gpt.near'; // TODO: Change to whatever has min contract 
 
 const keyStore = new BrowserLocalStorageKeyStore(window.localStorage, 'deploy');
 
@@ -33,9 +34,7 @@ export async function getDeployInfo({ accountId }) {
         throw new Error(`Unexpected status code ${keyResponse.status}`);
     }
 
-    const configResponse = await fetch(`${FAST_NEAR_URL}/account/${contractId}/view/getConfig`);
-    const config = configResponse.ok && await configResponse.json();
-    return { account, keyPair, keyResponse, config };
+    return { account, keyPair, keyResponse };
 }
 
 export async function deploy({ accountId, staticUrl }) {
@@ -88,16 +87,9 @@ export async function deploy({ accountId, staticUrl }) {
         receiverId: contractId,
         actions: [
             deployContract(contractWasm),
-            functionCall('setOwner', { accountId }, 10000000000000, '0'),
+            // TODO: Make sure web4-min-contract has setOwner method
+            // functionCall('setOwner', { accountId }, 10000000000000, '0'),
             functionCall('web4_setStaticUrl', { url: staticUrl }, 10000000000000, '0'),
-            functionCall('setConfig', { config: {
-                name: accountId,
-                bio: '',
-                links: [
-                    { type: 'twitter' },
-                    { type: 'github' }
-                ]
-            } }, 10000000000000, '0'),
         ]
     });
 

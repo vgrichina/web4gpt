@@ -354,8 +354,8 @@ const ChatApp = () => {
   }
 
   async function deployWebsite() {
-    await uploadFiles(files);
-    await deploy({ accountId });
+    const rootCid = await uploadFiles(files);
+    await deploy({ accountId, staticUrl: `ipfs://${rootCid}` });
   }
 
   const ChatMessage = ({ message }) => {

@@ -146,4 +146,6 @@ export async function uploadFiles(files, options = DEFAULT_OPTIONS) {
     }
 
     await uploadBlocks(blocksToUpload, options);
+
+    return cidToString(rootCid);
 }
