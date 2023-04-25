@@ -4,9 +4,9 @@ import * as ReactDOMClient from 'react-dom/client';
 import { marked } from 'marked';
 import insane from 'insane';
 
-import useDebounce from './hooks/use-debounce';
 import { uploadFiles } from './utils/nearfs-upload';
 import { deploy } from './utils/deploy-contract';
+import useThrottle from './hooks/use-throttle';
 
 const apiUrl = 'https://api.openai.com/v1/chat/completions';
 const apiKey = process.env.OPENAPI_KEY;
@@ -87,12 +87,12 @@ const ChatApp = () => {
 
   // Update file list based on last message
   const lastAiResponse = (messages.findLast((message) => message.role === 'assistant') || { content: '' }).content;
-  const debouncedLastAiResponse = useDebounce(lastAiResponse, 1000);
+  const throttleLastAiResponse = useThrottle(lastAiResponse, 1000);
   useEffect(() => {
-    if (debouncedLastAiResponse.trim() === '') return;
+    if (throttleLastAiResponse.trim() === '') return;
 
-    processAiResponse(debouncedLastAiResponse);
-  }, [debouncedLastAiResponse]);
+    processAiResponse(throttleLastAiResponse);
+  }, [throttleLastAiResponse]);
 
   useEffect(() => {
     localStorage.setItem('web4gpt:messages', JSON.stringify(messages));
