@@ -80,23 +80,24 @@ const ChatApp = () => {
     previewWebsite('index.html');
   }, []);
 
+  const throttledMessages = useThrottle(messages, 500);
+
   useEffect(() => {
     // Scroll to bottom of chat
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [throttledMessages]);
 
   // Update file list based on last message
-  const lastAiResponse = (messages.findLast((message) => message.role === 'assistant') || { content: '' }).content;
-  const throttleLastAiResponse = useThrottle(lastAiResponse, 1000);
+  const lastAiResponse = (throttledMessages.findLast((message) => message.role === 'assistant') || { content: '' }).content;
   useEffect(() => {
-    if (throttleLastAiResponse.trim() === '') return;
+    if (lastAiResponse.trim() === '') return;
 
-    processAiResponse(throttleLastAiResponse);
-  }, [throttleLastAiResponse]);
+    processAiResponse(lastAiResponse);
+  }, [lastAiResponse]);
 
   useEffect(() => {
-    localStorage.setItem('web4gpt:messages', JSON.stringify(messages));
-  }, [messages]);
+    localStorage.setItem('web4gpt:messages', JSON.stringify(throttledMessages));
+  }, [throttledMessages]);
 
   useEffect(() => {
     localStorage.setItem('web4gpt:files', JSON.stringify(files));
@@ -390,7 +391,7 @@ const ChatApp = () => {
           </div>
           <div className="chat-history">
             <ul id="chat-list">
-              {messages.map((message, index) => (
+              {throttledMessages.map((message, index) => (
                 <ChatMessage key={index} message={message} />
               ))}
             </ul>
