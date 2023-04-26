@@ -62,6 +62,7 @@ const initialFiles = [
 const objectUrlCache = {};
 
 const ChatApp = () => {
+  const [chatIsLoading, setChatIsLoading] = useState(false);
   const [userInput, setUserInput] = useState('');
   const [messages, setMessages] = useState(JSON.parse(localStorage.getItem('web4gpt:messages') || JSON.stringify(initialMessages)));
   const [files, setFiles] = useState(JSON.parse(localStorage.getItem('web4gpt:files') || JSON.stringify(initialFiles)));
@@ -121,6 +122,7 @@ const ChatApp = () => {
 
     addMessageToList('', 'assistant');
     try {
+      setChatIsLoading(true);
       for await (let aiResponse of getAiResponseStream(userInput.trim(), { signal: abortController.current.signal })) {
         appendToLastMessage(aiResponse);
       }
@@ -132,6 +134,8 @@ const ChatApp = () => {
       } else {
         throw error;
       }
+    } finally {
+      setChatIsLoading(false);
     }
   };
 
@@ -394,6 +398,11 @@ const ChatApp = () => {
               {throttledMessages.map((message, index) => (
                 <ChatMessage key={index} message={message} />
               ))}
+              { chatIsLoading &&
+                <li>
+                  <div className="loader"></div>
+                </li>
+              }
             </ul>
             <div ref={chatBottomRef}></div>
           </div>
