@@ -15,31 +15,29 @@ const initialMessages = [
   {
     role: 'system',
     content: `
-Hi! I'm a chatbot that is good at making simple websites for it's users.
+You are a chatbot that is good at making simple websites for it's users.
 
-I can take any input info from you and then create a website for you.
+You can take any input info from user and then create a website.
+You are not going to ask any questions. You'll improvise based on your training data.
 
-I'll start by listing website outline and what info is included in every section.
-I'm not going to ask any questions. I'll improvise based on my training data.
+You'll use placeholder.it images.
 
-I'll use placeholder.it images.
+You will first generate website outline and a list of files in such format:
 
-I'll output content of every file in the website.
+## files to generate:
+- index.html
+- about.html
+- style.css
+- script.js
 
-I'll represent every file in output like this:
+After that you'll generate specific files only when asked to do so.
+Do not output file content when not asked for specific file.
 
----index.html---
-<html>
-<head>
-  <title>Hello, world!</title>
-</head>
-<body>
-  <h1>Hello, world!</h1>
-</body>
-</html>
----index.html end---
+Prepend file content by:
+---filename---
 
-I'm going to put all files top-level and avoid using Markdown in output.
+and append by:
+---filename end---
 
 `}];
 
@@ -121,10 +119,12 @@ const ChatApp = () => {
     abortController.current = new AbortController();
 
     addMessageToList('', 'assistant');
+    const chunks = [];
     try {
       setChatIsLoading(true);
       for await (let aiResponse of getAiResponseStream(userInput.trim(), { signal: abortController.current.signal })) {
         appendToLastMessage(aiResponse);
+        chunks.push(aiResponse);
       }
     } catch (error) {
       console.error('Error in for await loop: ', error);
@@ -137,7 +137,37 @@ const ChatApp = () => {
     } finally {
       setChatIsLoading(false);
     }
+
+    const aiResponse = chunks.join('');
+    console.log('aiResponse: ', aiResponse);
+    if (aiResponse.includes('# files to generate:')) {
+      // Generate files
+      const filesToGenerate = Array.from(aiResponse.matchAll(/- ([\w.-]+)\n/gs));
+
+      setChatIsLoading(true);
+      // TODO: show file by file progress in UI?
+      let filesProcessed = 0;
+      for (let file of filesToGenerate) {
+        const [, fileName] = file;
+        generateFile(fileName).catch((error) => {
+          // TODO: show error in UI
+          console.error('Error generating file:', fileName, error);
+        }).finally(() => {
+          filesProcessed++;
+          console.log('filesProcessed: ', filesProcessed, filesToGenerate.length);
+          if (filesProcessed === filesToGenerate.length) {
+            setChatIsLoading(false);
+          }
+        });
+      }
+    }
   };
+
+  async function generateFile(fileName) {
+    console.log('generating file: ', fileName);
+    const aiResponse = await getAiResponse(`generate ${fileName}`);
+    processAiResponse(aiResponse);
+  }
 
   const updateFile = (fileName, fileContent) => {
     console.log('updating file: ', fileName, 'with content: ', fileContent);
@@ -153,7 +183,7 @@ const ChatApp = () => {
     });
   };
 
-  const processAiResponse = (text) => {
+  function processAiResponse(text) {
     // Extract files from AI response
     const files = text.matchAll(/---([\w.-]+)---(.+?)---([\w.-]+) end---/gs);
     // ---file_name.ext--- - start of file
@@ -173,9 +203,6 @@ const ChatApp = () => {
 
   const addMessageToList = (text, sender) => {
     setMessages((prevMessages) => [...prevMessages, { role: sender, content: text }]);
-    if (sender === 'assistant') {
-      processAiResponse(text);
-    }
   };
 
   const appendToLastMessage = (text) => {
