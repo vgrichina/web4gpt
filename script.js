@@ -122,7 +122,7 @@ const ChatApp = () => {
     const chunks = [];
     try {
       setChatIsLoading(true);
-      for await (let aiResponse of getAiResponseStream(userInput.trim(), { signal: abortController.current.signal })) {
+      for await (let aiResponse of getAiResponseStream(null, { signal: abortController.current.signal })) {
         appendToLastMessage(aiResponse);
         chunks.push(aiResponse);
       }
@@ -283,9 +283,25 @@ const ChatApp = () => {
     });
   }
 
-  async function* getAiResponseStream(userInput, { signal } = {}) {
+  function getMessages() {
+    return new Promise((resolve) => {
+      setMessages((prevMessages) => {
+        // NOTE: Is there cleaner way to get latest state?
+        resolve(prevMessages);
+        return prevMessages;
+      });
+    });
+  }
+
+  async function* getAiResponseStream(userInput, { role = 'user', signal } = {}) {
+    let messages = await getMessages();
+
+    if (userInput) {
+      messages = [...messages, { role, content: userInput }];
+    }
+
     const response = await requestCompletions({
-      messages: [...messages, { role: 'user', content: userInput }],
+      messages,
       stream: true,
       signal
     });
@@ -349,6 +365,8 @@ const ChatApp = () => {
   };
 
   async function getAiResponse(userInput) {
+    const messages = await getMessages();
+
     const response = await requestCompletions({
       messages: [...messages, { role: 'user', content: userInput }]
     });
