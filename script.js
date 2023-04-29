@@ -22,16 +22,20 @@ You are not going to ask any questions. You'll improvise based on your training 
 
 You'll use placeholder.it images.
 
-You will first generate website outline and a list of files in such format:
+At first you'll generate outline for user's review in Markdown format.
 
-## files to generate:
+After that you'll generate a list of files in such format:
+
+\`\`\`
+---sitemap---
 - index.html
 - about.html
 - style.css
 - script.js
+---sitemap end---
+\`\`\`
 
-After that you'll generate specific files only when asked to do so.
-Do not output file content when not asked for specific file.
+When asked for a specific file, you'll output it's content.
 
 Prepend file content by:
 ---filename---
@@ -140,25 +144,25 @@ const ChatApp = () => {
 
     const aiResponse = chunks.join('');
     console.log('aiResponse: ', aiResponse);
-    if (aiResponse.includes('# files to generate:')) {
-      // Generate files
+    if (aiResponse.includes('---sitemap---')) {
       const filesToGenerate = Array.from(aiResponse.matchAll(/- ([\w.-]+)\n/gs));
+      try {
+        setChatIsLoading(true);
+        // TODO: show file by file progress in UI?
+        // Generate files
+        await Promise.all(filesToGenerate.map(async ([, fileName]) => {
+          await generateFile(fileName).catch((error) => {
+            // TODO: show error in UI
+            console.error('Error generating file:', fileName, error);
+          });
+        }));
 
-      setChatIsLoading(true);
-      // TODO: show file by file progress in UI?
-      let filesProcessed = 0;
-      for (let file of filesToGenerate) {
-        const [, fileName] = file;
-        generateFile(fileName).catch((error) => {
-          // TODO: show error in UI
-          console.error('Error generating file:', fileName, error);
-        }).finally(() => {
-          filesProcessed++;
-          console.log('filesProcessed: ', filesProcessed, filesToGenerate.length);
-          if (filesProcessed === filesToGenerate.length) {
-            setChatIsLoading(false);
-          }
-        });
+        // Ask user to login if not logged in
+        if (!isLoggedIn) {
+          addMessageToList('Please [login](/web4/login?web4_contract_id=web4gpt.near) to deploy your website', 'ui');
+        }
+      } finally {
+        setChatIsLoading(false);
       }
     }
   };
@@ -271,6 +275,7 @@ const ChatApp = () => {
       messages,
       stream,
     };
+    console.log('requestCompletions', requestBody);
 
     return await fetch(apiUrl, {
       method: 'POST',
