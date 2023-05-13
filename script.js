@@ -7,6 +7,7 @@ import insane from 'insane';
 import { uploadFiles } from './utils/nearfs-upload';
 import { deploy } from './utils/deploy-contract';
 import useThrottle from './hooks/use-throttle';
+import { cidToString } from 'fast-ipfs';
 
 const apiUrl = 'https://api.openai.com/v1/chat/completions';
 const apiKey = process.env.OPENAPI_KEY;
@@ -163,12 +164,6 @@ const ChatApp = () => {
           addMessageToList(`File ${fileName} generated`, 'assistant');
         }));
 
-        // Ask user to login if not logged in
-        if (!isLoggedIn) {
-          addMessageToList('Please [login](/web4/login?web4_contract_id=web4gpt.near) to deploy your website', 'assistant'); 
-        } else {
-          addMessageToList('Your website is ready! You can deploy it now.', 'assistant');
-        }
       } finally {
         setChatIsLoading(false);
       }
@@ -417,8 +412,11 @@ const ChatApp = () => {
   }
 
   async function deployWebsite() {
+    addMessageToList('Uploading files to NEARFS...', 'assistant');
     const rootCid = await uploadFiles(files);
+    addMessageToList(`Files uploaded to NEARFS. Root CID: ${rootCid}. Deploying to web4.${accountId}`, 'assistant');
     await deploy({ accountId, staticUrl: `ipfs://${rootCid}` });
+    addMessageToList(`Website deployed to [web4.${accountId}](https://${accountId}.page).`, 'assistant');
   }
 
   const ChatMessage = ({ message }) => {
@@ -444,10 +442,6 @@ const ChatApp = () => {
       <div className="left-column">
         <div className="chat-container">
           <div className="chat-header">
-            {isLoggedIn
-              ? <a className="deploy-button" href="#" onClick={deployWebsite}>Deploy</a>
-              : <a className="login-button" href="/web4/login?web4_contract_id=web4gpt.near">Login</a>
-            }
             Chat
             <a className="reset-button" href="#" onClick={resetChat}>Reset</a>
           </div>
@@ -461,7 +455,14 @@ const ChatApp = () => {
                   <div className="loader"></div>
                 </li>
               }
-              { !chatIsLoading && readyToDeploy &&
+              { !chatIsLoading && !isLoggedIn && readyToDeploy &&
+                <li>
+                  <div className="message-text">
+                    Please <a href="/web4/login?web4_contract_id=web4gpt.near">login</a> to deploy your website.
+                  </div>
+                </li>
+              }
+              { !chatIsLoading && isLoggedIn && readyToDeploy &&
                 <li>
                   <button className="action-button" type="submit" onClick={deployWebsite}>Deploy</button>
                 </li>
