@@ -151,7 +151,7 @@ body {
   border: 1px solid #d9d9d9;
 }
 
-.chat-input button[type="submit"] {
+.chat-input button[type="submit"], .action-button {
   padding: 10px;
   font-size: 1.1rem;
   border-radius: 5px;
@@ -169,6 +169,8 @@ body {
 .chat-history ul {
   list-style: none;
 }
+
+
 
 /* File list styles */
 .file-list-container {

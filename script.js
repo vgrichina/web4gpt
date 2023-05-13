@@ -79,6 +79,10 @@ const ChatApp = () => {
   const accountId = accountIdCookie ? accountIdCookie.split('=')[1] : null;
   const isLoggedIn = !!accountId;
 
+  const sitemap = files.find(({ name }) => name === 'sitemap');
+  const allFiles = sitemap && parseFilesToGenerate(sitemap.content);
+  const readyToDeploy = allFiles && allFiles.every(fileName => files.some(({ name }) => name === fileName));
+
   useEffect(() => {
     previewWebsite('index.html');
   }, []);
@@ -145,21 +149,25 @@ const ChatApp = () => {
     const aiResponse = chunks.join('');
     console.log('aiResponse: ', aiResponse);
     if (aiResponse.includes('---sitemap---')) {
-      const filesToGenerate = Array.from(aiResponse.matchAll(/- ([\w.-]+)\n/gs));
+      const filesToGenerate = parseFilesToGenerate(aiResponse);
       try {
         setChatIsLoading(true);
         // TODO: show file by file progress in UI?
         // Generate files
-        await Promise.all(filesToGenerate.map(async ([, fileName]) => {
+        await Promise.all(filesToGenerate.map(async (fileName) => {
+          addMessageToList(`Generating file: ${fileName}`, 'assistant');
           await generateFile(fileName).catch((error) => {
             // TODO: show error in UI
             console.error('Error generating file:', fileName, error);
           });
+          addMessageToList(`File ${fileName} generated`, 'assistant');
         }));
 
         // Ask user to login if not logged in
         if (!isLoggedIn) {
-          addMessageToList('Please [login](/web4/login?web4_contract_id=web4gpt.near) to deploy your website', 'ui');
+          addMessageToList('Please [login](/web4/login?web4_contract_id=web4gpt.near) to deploy your website', 'assistant'); 
+        } else {
+          addMessageToList('Your website is ready! You can deploy it now.', 'assistant');
         }
       } finally {
         setChatIsLoading(false);
@@ -272,7 +280,7 @@ const ChatApp = () => {
   async function requestCompletions({ messages, stream = false, signal }) {
     const requestBody = {
       model: 'gpt-3.5-turbo',
-      messages,
+      messages: messages.filter((message) => message.role !== 'ui'),
       stream,
     };
     console.log('requestCompletions', requestBody);
@@ -319,7 +327,7 @@ const ChatApp = () => {
         // TODO: Tune this hack
         const summaryResponse = await requestCompletions({
           // NOTE: Skip system instructions for summary
-          messages: [...messages.slice(1), { role: 'user', content: 'Please summarize previous messages. Make sure to include latest user input and website outline. It should be enough info to rebuilf website.' }],
+          messages: [...messages.slice(1), { role: 'user', content: 'Please summarize previous messages. Make sure to include latest user input and website outline. It should be enough info to rebuild website.' }],
           stream: true,
           signal
         });
@@ -453,6 +461,11 @@ const ChatApp = () => {
                   <div className="loader"></div>
                 </li>
               }
+              { !chatIsLoading && readyToDeploy &&
+                <li>
+                  <button className="action-button" type="submit" onClick={deployWebsite}>Deploy</button>
+                </li>
+              }
             </ul>
             <div ref={chatBottomRef}></div>
           </div>
@@ -510,3 +523,8 @@ export default ChatApp;
 const rootElement = document.getElementById('root');
 const root = ReactDOMClient.createRoot(rootElement);
 root.render(<ChatApp />);
+
+function parseFilesToGenerate(aiResponse) {
+  return Array.from(aiResponse.matchAll(/- ([\w.-]+)\n/gs)).map(match => match[1]);
+}
+
