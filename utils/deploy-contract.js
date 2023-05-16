@@ -26,10 +26,8 @@ export async function getDeployInfo({ accountId }) {
 
     const keyResponse = await fetch(`${FAST_NEAR_URL}/account/${contractId}/key/${keyPair.publicKey}`);
     if (keyResponse.status === 404) {
-        // Acccount exists but doesn't have access key
-        // TODO: Report message to user? Add key through wallet if possible?
         console.error(`Account ${accountId} exists but doesn't have access key`);
-        return { account, keyPair, keyResponse };
+        return { account, keyPair };
     } else if (keyResponse.status !== 200) {
         throw new Error(`Unexpected status code ${keyResponse.status}`);
     }
@@ -68,9 +66,29 @@ export async function deploy({ accountId, staticUrl }) {
         return;
     }
 
-    if (keyResponse.status === 404) {
-        // TODO: Report message to user? Add key through wallet if possible?
-        throw Error(`Account ${accountId} exists but doesn't have necessary access key`);
+    if (!keyResponse) {
+        // TODO: Let user know? 
+
+        console.log(`Account ${accountId} exists but doesn't have access key to deploy contract. Trying to use existing contract.`);
+        const methodsAvailable = await (await fetch(`${FAST_NEAR_URL}/account/${contractId}/contract/methods`)).json();
+        console.log('methodsAvailable', methodsAvailable);
+        if (['web4_setOwner', 'web4_setStaticUrl'].every(m => methodsAvailable.includes(m))) {
+            console.log('Contract already deployed, calling web4_setStaticUrl');
+            window.location = signTransactionsURL({ walletUrl: WALLET_URL, transactions: [
+                new Transaction({
+                    signerId: accountId,
+                    publicKey: new PublicKey({ type: 0, data: Buffer.from(new Array(32))}),
+                    nonce: 0,
+                    blockHash: Buffer.from(new Array(32)),
+                    receiverId: contractId,
+                    actions: [
+                        functionCall('web4_setStaticUrl', { url: staticUrl }, 10000000000000, '0'),
+                    ]
+                })
+            ], callbackUrl: window.location.href });
+        }
+
+        return;
     }
 
     const nonce = parseInt((await keyResponse.json()).nonce) + 1;
