@@ -412,11 +412,21 @@ const ChatApp = () => {
   }
 
   async function deployWebsite() {
-    addMessageToList('Uploading files to NEARFS...', 'assistant');
-    const rootCid = await uploadFiles(files);
-    addMessageToList(`Files uploaded to NEARFS. Root CID: ${rootCid}. Deploying to web4.${accountId}`, 'assistant');
-    await deploy({ accountId, staticUrl: `ipfs://${rootCid}` });
-    addMessageToList(`Website deployed to [web4.${accountId}](https://${accountId}.page).`, 'assistant');
+    try {
+      setChatIsLoading(true);
+      console.log('setChatIsLoading(true)');
+      addMessageToList('Uploading files to NEARFS...', 'assistant');
+      const rootCid = await uploadFiles(files);
+      addMessageToList(`Files uploaded to NEARFS. Root CID: ${rootCid}. Deploying to web4.${accountId}`, 'assistant');
+      await deploy({ accountId, staticUrl: `ipfs://${rootCid}` });
+      addMessageToList(`Website deployed to [web4.${accountId}](https://${accountId}.page).`, 'assistant');
+    } catch (error) {
+      console.log('deployWebsite error', error);
+      addMessageToList(`Error deploying website: ${error}`, 'assistant');
+    } finally {
+      console.log('setChatIsLoading(false)');
+      setChatIsLoading(false);
+    }
   }
 
   const ChatMessage = ({ message }) => {
