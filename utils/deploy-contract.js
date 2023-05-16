@@ -87,8 +87,7 @@ export async function deploy({ accountId, staticUrl }) {
         receiverId: contractId,
         actions: [
             deployContract(contractWasm),
-            // TODO: Make sure web4-min-contract has setOwner method
-            // functionCall('setOwner', { accountId }, 10000000000000, '0'),
+            functionCall('web4_setOwner', { accountId }, 10000000000000, '0'),
             functionCall('web4_setStaticUrl', { url: staticUrl }, 10000000000000, '0'),
         ]
     });
