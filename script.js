@@ -7,10 +7,7 @@ import insane from 'insane';
 import { uploadFiles } from './utils/nearfs-upload';
 import { deploy } from './utils/deploy-contract';
 import useThrottle from './hooks/use-throttle';
-import { cidToString } from 'fast-ipfs';
-
-const apiUrl = 'https://api.openai.com/v1/chat/completions';
-const apiKey = process.env.OPENAPI_KEY;
+import { getAiResponseStream, requestCompletions } from './utils/chat-api';
 
 const initialMessages = [
   {
@@ -131,7 +128,7 @@ const ChatApp = () => {
     const chunks = [];
     try {
       setChatIsLoading(true);
-      for await (let aiResponse of getAiResponseStream(null, { signal: abortController.current.signal })) {
+      for await (let aiResponse of getAiResponseStreamAfterInput(null, { signal: abortController.current.signal })) {
         appendToLastMessage(aiResponse);
         chunks.push(aiResponse);
       }
@@ -150,22 +147,29 @@ const ChatApp = () => {
     const aiResponse = chunks.join('');
     console.log('aiResponse: ', aiResponse);
     if (aiResponse.includes('---sitemap---')) {
-      const filesToGenerate = parseFilesToGenerate(aiResponse);
-      try {
-        setChatIsLoading(true);
-        // TODO: show file by file progress in UI?
-        // Generate files
-        await Promise.all(filesToGenerate.map(async (fileName) => {
-          addMessageToList(`Generating file: ${fileName}`, 'assistant');
-          await generateFile(fileName).catch((error) => {
-            // TODO: show error in UI
-            console.error('Error generating file:', fileName, error);
-          });
-          addMessageToList(`File ${fileName} generated`, 'assistant');
-        }));
+      const sitemap = filesFromAiResponse(aiResponse).find(({ name }) => name === 'sitemap');
+      if (sitemap) {
+        // NOTE: Not updated otherwise
+        updateFile(sitemap.name, sitemap.content);
+        // TODO: Extract chat model separately
 
-      } finally {
-        setChatIsLoading(false);
+        const filesToGenerate = parseFilesToGenerate(sitemap.content);
+        try {
+          setChatIsLoading(true);
+          // TODO: show file by file progress in UI?
+          // Generate files
+          await Promise.all(filesToGenerate.map(async (fileName) => {
+            addMessageToList(`Generating file: ${fileName}`, 'assistant');
+            await generateFile(fileName).catch((error) => {
+              // TODO: show error in UI
+              console.error('Error generating file:', fileName, error);
+            });
+            addMessageToList(`File ${fileName} generated`, 'assistant');
+          }));
+
+        } finally {
+          setChatIsLoading(false);
+        }
       }
     }
   };
@@ -190,17 +194,20 @@ const ChatApp = () => {
     });
   };
 
-  function processAiResponse(text) {
-    // Extract files from AI response
-    const files = text.matchAll(/---([\w.-]+)---(.+?)---([\w.-]+) end---/gs);
+  function filesFromAiResponse(aiResponse) {
+    const files = aiResponse.matchAll(/---([\w.-]+)---(.+?)---([\w.-]+) end---/gs);
     // ---file_name.ext--- - start of file
     // (.+) - file content
     // ---file_name.ext end--- - end of file
+    return Array.from(files, ([, fileName, fileContent]) => ({ name: fileName, content: fileContent }));
+  }
 
-    for (let file of files) {
-      const [, fileName, fileContent] = file;
-      console.log('file name: ', fileName, 'file content: ', fileContent);
-      updateFile(fileName, fileContent);
+  function processAiResponse(text) {
+    // Extract files from AI response
+    const files = filesFromAiResponse(text);
+    for (let { name, content } of files) {
+      console.log('file name: ', name, 'file content: ', content);
+      updateFile(name, content);
     }
   }
 
@@ -272,24 +279,6 @@ const ChatApp = () => {
     setWebsitePreview(replaceUrls(index.content));
   };
 
-  async function requestCompletions({ messages, stream = false, signal }) {
-    const requestBody = {
-      model: 'gpt-3.5-turbo',
-      messages: messages.filter((message) => message.role !== 'ui'),
-      stream,
-    };
-    console.log('requestCompletions', requestBody);
-
-    return await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(requestBody),
-      signal
-    });
-  }
 
   function getMessages() {
     return new Promise((resolve) => {
@@ -301,76 +290,15 @@ const ChatApp = () => {
     });
   }
 
-  async function* getAiResponseStream(userInput, { role = 'user', signal } = {}) {
+  async function* getAiResponseStreamAfterInput(userInput, { role = 'user', signal } = {}) {
     let messages = await getMessages();
 
     if (userInput) {
       messages = [...messages, { role, content: userInput }];
     }
 
-    const response = await requestCompletions({
-      messages,
-      stream: true,
-      signal
-    });
-
-    if (!response.ok) {
-      const { error } = await response.json();
-      console.log('error', error);
-
-      if (error.code === 'context_length_exceeded') {
-        // TODO: Tune this hack
-        const summaryResponse = await requestCompletions({
-          // NOTE: Skip system instructions for summary
-          messages: [...messages.slice(1), { role: 'user', content: 'Please summarize previous messages. Make sure to include latest user input and website outline. It should be enough info to rebuild website.' }],
-          stream: true,
-          signal
-        });
-
-        yield* parseAiResponseStream(summaryResponse);
-
-        const nextResponse = await requestCompletions({
-          messages: [messages[0], messages[messages.length - 1], { role: 'user', content: userInput }],
-          stream: true,
-          signal
-        });
-
-        yield* parseAiResponseStream(nextResponse);
-
-        return;
-      }
-
-      throw new Error(`Error from AI: ${error.message}`);
-    }
-
-    yield* parseAiResponseStream(response);
+    yield* getAiResponseStream({ messages, signal });
   }
-
-  async function* parseAiResponseStream(response) {
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-
-    while (true) {
-      const { value, done: readerDone } = await reader.read();
-      if (readerDone) {
-        return;
-      }
-
-      const text = decoder.decode(value);
-      const chunks = text.split('\n\n');
-      for (let chunk of chunks) {
-        if (chunk.startsWith('data: ') && chunk != 'data: [DONE]') {
-          const data = JSON.parse(chunk.slice(6));
-          const content = data.choices[0].delta.content;
-          if (content && content.length > 0) {
-            yield content;
-          }
-        } else if (chunk.length > 0) {
-          console.log('unprocessed chunk: ', chunk);
-        }
-      }
-    }
-  };
 
   async function getAiResponse(userInput) {
     const messages = await getMessages();
