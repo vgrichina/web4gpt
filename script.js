@@ -124,12 +124,11 @@ const ChatApp = () => {
     }
     abortController.current = new AbortController();
 
-    addMessageToList('', 'assistant');
     const chunks = [];
     try {
       setChatIsLoading(true);
       for await (let aiResponse of getAiResponseStreamAfterInput(null, { signal: abortController.current.signal })) {
-        appendToLastMessage(aiResponse);
+        appendAiResponseChunk(aiResponse);
         chunks.push(aiResponse);
       }
     } catch (error) {
@@ -219,14 +218,15 @@ const ChatApp = () => {
     setMessages((prevMessages) => [...prevMessages, { role: sender, content: text }]);
   };
 
-  const appendToLastMessage = (text) => {
+  const appendAiResponseChunk = (text) => {
     setMessages((prevMessages) => {
       // TODO: Find message to update by ID?
       const lastMessage = prevMessages[prevMessages.length - 1];
-      if (lastMessage.role === 'assistant') {
-        return [...prevMessages.slice(0, -1), { ...lastMessage, content: lastMessage.content + text }];
+      if (lastMessage.role !== 'assistant') {
+        return [...prevMessages, { role: 'assistant', content: text }];
       }
-      return prevMessages;
+
+      return [...prevMessages.slice(0, -1), { ...lastMessage, content: lastMessage.content + text }];
     });
   };
 
